@@ -1,3 +1,5 @@
 aiohttp
 bs4
+groq
+python-dotenv
 streamlit
