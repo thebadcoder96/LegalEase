@@ -16,7 +16,7 @@ if url:
         st.success(f"Scraped {doc['source']}")
     with st.spinner("Analyzing..."):
         analysis = analyze_document(doc['content'])
-        st.success(f"Analyzed {doc['title']}")
+        st.success(f"Analyzed {doc['source']}")
         st.subheader("Analysis:")
         st.write(analysis)
 
