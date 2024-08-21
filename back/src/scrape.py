@@ -36,4 +36,5 @@ async def scrape(url: str) -> str:
     if soup.find("html"):
         doc['language'] = soup.find("html").get("lang", "N/A")
     doc['content'] = soup.get_text()
+    # TODO: Save the document to a database
     return doc
