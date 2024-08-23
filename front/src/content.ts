@@ -8,10 +8,11 @@ class TooltipManager {
 
     private createTooltip(): void {
         this.tooltip = document.createElement('div');
+        this.tooltip.id = 'legal-tooltip';
         this.tooltip.style.position = 'fixed';
         this.tooltip.style.backgroundColor = '#555';
         this.tooltip.style.color = '#fff';
-        this.tooltip.style.padding = '5px 10px';
+        this.tooltip.style.padding = '10px';
         this.tooltip.style.borderRadius = '4px';
         this.tooltip.style.zIndex = '10000';
         this.tooltip.style.fontSize = '14px';
@@ -19,32 +20,101 @@ class TooltipManager {
         this.tooltip.style.display = 'none';
         this.tooltip.style.transition = 'opacity 0.3s ease-in-out';
         this.tooltip.style.opacity = '0';
+        this.tooltip.style.width = '250px';
+        this.tooltip.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+
+        this.tooltip.innerHTML = `
+            <div id="tooltip-content" style="margin-bottom: 10px;">Placeholder Content</div>
+            <div style="display: flex; justify-content: space-between;">
+                <button id="tooltip-dismiss" style="background: none; border: none; color: #fff; cursor: pointer;">Dismiss</button>
+                <button id="tooltip-see-more" style="background: none; border: none; color: #fff; cursor: pointer;">See more</button>
+            </div>
+        `;
+
+        const dismissButton = this.tooltip.querySelector('#tooltip-dismiss');
+        const seeMoreButton = this.tooltip.querySelector('#tooltip-see-more');
+
+        if (dismissButton) {
+            dismissButton.addEventListener('click', () => this.hideImmediately());
+        }
+
+        if (seeMoreButton) {
+            seeMoreButton.addEventListener('click', () => {
+                console.log('See more clicked');
+            });
+        }
 
         this.tooltip.addEventListener('mouseenter', this.handleTooltipMouseEnter.bind(this));
         this.tooltip.addEventListener('mouseleave', this.handleTooltipMouseLeave.bind(this));
         document.body.appendChild(this.tooltip);
     }
 
-    show(data: { content: string; target: HTMLElement }): void {
+    async show(data: { target: HTMLElement; url: string }): Promise<void> {
         if (this.hideTimeout) {
             clearTimeout(this.hideTimeout);
         }
         
         if (this.tooltip) {
-            this.tooltip.textContent = data.content;
+            const contentDiv = document.getElementById('tooltip-content');
+            if (contentDiv) {
+                contentDiv.textContent = 'Loading summary...';
+            }
             this.positionTooltip(data.target);
             this.tooltip.style.display = 'block';
             setTimeout(() => {
                 if (this.tooltip) this.tooltip.style.opacity = '1';
             }, 100);
+
+            try {
+                const summary = await this.fetchSummary(data.url);
+                if (contentDiv) {
+                    contentDiv.textContent = summary;
+                }
+            } catch (error) {
+                console.error('Failed to fetch summary:', error);
+                if (contentDiv) {
+                    contentDiv.textContent = 'Failed to load summary.';
+                }
+            }
         }
     }
 
+    private async fetchSummary(url: string): Promise<string> {
+        console.log('Fetching summary for', url);
+        const response = await fetch('http://127.0.0.1:8000/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: url,
+              }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch summary');
+        }
+
+        const data = await response.text();
+        return data;
+    }
+
     hide(): void {
+        this.hideTimeout = window.setTimeout(() => {
+            this.hideImmediately();
+        }, 1000);
+    }
+
+    private hideImmediately(): void {
         if (this.tooltip) {
-            this.hideTimeout = window.setTimeout(() => {
-                if (this.tooltip) this.tooltip.style.opacity = '0';
-            }, 1000) as unknown as number;
+            this.tooltip.style.opacity = '0';
+            setTimeout(() => {
+                if (this.tooltip) this.tooltip.style.display = 'none';
+            }, 300);
+        }
+        if (this.hideTimeout) {
+            clearTimeout(this.hideTimeout);
+            this.hideTimeout = null;
         }
     }
 
@@ -119,8 +189,8 @@ function handleLinkMouseOver(event: MouseEvent) {
     const link = event.target as HTMLAnchorElement;
     link.style.backgroundColor = 'rgba(142, 45, 226, 0.1)';
     tooltipManager.show({
-        content: 'This is a legal document. Click for more info.',
-        target: link
+        target: link,
+        url: link.href
     });
 }
 
@@ -130,7 +200,6 @@ function handleLinkMouseOut(event: MouseEvent) {
     tooltipManager.hide();
 }
 
-// Run the main function when the content script loads
 identifyLegalLinks();
 
 // Re-run the function when the page content changes (e.g., for single-page applications)
