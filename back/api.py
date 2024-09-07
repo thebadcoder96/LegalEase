@@ -22,6 +22,5 @@ class UrlInput(BaseModel):
 async def analyze(input: UrlInput):
     doc = await scrape(input.url)
     analysis = analyze_document(doc['content'])
-    return analysis["user_friendly_summary"]
-
+    return analysis
     

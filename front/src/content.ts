@@ -68,7 +68,7 @@ class TooltipManager {
             try {
                 const summary = await this.fetchSummary(data.url);
                 if (contentDiv) {
-                    contentDiv.textContent = summary;
+                    contentDiv.textContent = summary.user_friendly_summary;
                 }
             } catch (error) {
                 console.error('Failed to fetch summary:', error);
@@ -79,23 +79,21 @@ class TooltipManager {
         }
     }
 
-    private async fetchSummary(url: string): Promise<string> {
+    private async fetchSummary(url: string): Promise<any> {
         console.log('Fetching summary for', url);
         const response = await fetch('http://127.0.0.1:8000/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                url: url,
-              }),
+            body: JSON.stringify({ url: url }),
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch summary');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.text();
+        const data = await response.json();
         return data;
     }
 
@@ -159,7 +157,7 @@ const tooltipManager = new TooltipManager();
 function identifyLegalLinks() {
     const highlightedHrefs:Set<string> = new Set();
     const links = document.querySelectorAll('a');
-    const keywords = ['privacy', 'terms', 'cookies', 'legal', 'policy'];
+    const keywords = ['privacy', 'terms', 'cookie', 'legal', 'policy'];
 
     for (let i = 0; i < links.length; i++) {
         const link = links[i];
